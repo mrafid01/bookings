@@ -38,3 +38,18 @@ func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 	// send the data to the template
 	render.Template(w, r, "about.page.html", &models.TemplateData{})
 }
+
+// Generals renders the room page
+func (m *Repository) Generals(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "generals.page.html", &models.TemplateData{})
+}
+
+// Majors renders the room page
+func (m *Repository) Majors(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "majors.page.html", &models.TemplateData{})
+}
+
+// Contact renders the search availability page
+func (m *Repository) Contact(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "contact.page.html", &models.TemplateData{})
+}
