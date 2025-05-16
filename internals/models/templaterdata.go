@@ -1,5 +1,7 @@
 package models
 
+import "github.com/mrafid01/bookings/internals/forms"
+
 // TemplateData holds data sent from handlers to templates
 type TemplateData struct {
 	StringMap       map[string]string
@@ -11,4 +13,5 @@ type TemplateData struct {
 	Warning         string
 	Error           string
 	IsAuthenticated int
+	Form            *forms.Form
 }
