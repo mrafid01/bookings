@@ -1,8 +1,8 @@
 package config
 
 import (
+	"html/template"
 	"log"
-	"text/template"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/mrafid01/bookings/internals/models"

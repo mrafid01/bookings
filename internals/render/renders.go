@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
-	"text/template"
 
 	"github.com/justinas/nosurf"
 	"github.com/mrafid01/bookings/internals/config"
@@ -16,6 +16,7 @@ import (
 
 var app *config.AppConfig
 var pathToTemplates = "./templates"
+var functions = template.FuncMap{}
 
 // NewRenderer sets the config for the template package
 func NewRenderer(a *config.AppConfig) {
@@ -81,7 +82,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 
 	for _, page := range pages {
 		name := filepath.Base(page)
-		ts, err := template.New(name).ParseFiles(page)
+		ts, err := template.New(name).Funcs(functions).ParseFiles(page)
 		if err != nil {
 			return myCache, err
 		}
