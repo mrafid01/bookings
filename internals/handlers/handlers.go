@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -47,12 +46,17 @@ func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 
 // Generals renders the room page
 func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
-	data := make(map[string]interface{})
-	data["reservation"] = models.Reservation{}
+	stringMap := make(map[string]string)
+	stringMap["start_date"] = "2006-01-02"
+	stringMap["end_date"] = "2006-01-02"
+
+	data := make(map[string]any)
+	data["reservation"] = models.Reservation{Room: models.Room{RoomName: "General's Quarters"}}
+
 	render.Template(w, r, "make-reservations.page.html", &models.TemplateData{
 		Form:      forms.New(nil),
 		Data:      data,
-		// StringMap: stringMap,
+		StringMap: stringMap,
 	})
 }
 
@@ -65,8 +69,10 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sd := r.Form.Get("start_date")
-	ed := r.Form.Get("end_date")
+	// sd := r.Form.Get("start_date")
+	// ed := r.Form.Get("end_date")
+	sd := "2025-05-20"
+	ed := "2025-05-24"
 
 	// 2020-01-01 -- 01/02 03:04:05PM '06 -0700
 
@@ -109,6 +115,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		StartDate: startDate,
 		EndDate:   endDate,
 		RoomID:    roomID,
+		Room:      models.Room{RoomName: "General's Quarters"},
 		// Room:      room, // add this to fix invalid data error
 	}
 
@@ -127,7 +134,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		stringMap["start_date"] = sd
 		stringMap["end_date"] = ed
 
-		render.Template(w, r, "make-reservation.page.tmpl", &models.TemplateData{
+		render.Template(w, r, "make-reservations.page.html", &models.TemplateData{
 			Form:      form,
 			Data:      data,
 			StringMap: stringMap, // fixes error after invalid data
@@ -157,42 +164,67 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	// send notifications - first to guest
-	htmlMessage := fmt.Sprintf(`
-		<strong>Reservation Confirmation</strong><br>
-		Dear %s: <br>
-		This is confirm your reservation from %s to %s.
-`, reservation.FirstName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
+	// 	// send notifications - first to guest
+	// 	htmlMessage := fmt.Sprintf(`
+	// 		<strong>Reservation Confirmation</strong><br>
+	// 		Dear %s: <br>
+	// 		This is confirm your reservation from %s to %s.
+	// `, reservation.FirstName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
 
-	msg := models.MailData{
-		To:       reservation.Email,
-		From:     "me@here.com",
-		Subject:  "Reservation Confirmation",
-		Content:  htmlMessage,
-		Template: "basic.html",
-	}
+	// 	msg := models.MailData{
+	// 		To:       reservation.Email,
+	// 		From:     "me@here.com",
+	// 		Subject:  "Reservation Confirmation",
+	// 		Content:  htmlMessage,
+	// 		Template: "basic.html",
+	// 	}
 
-	m.App.MailChan <- msg
+	// 	m.App.MailChan <- msg
 
-	// send notification to property owner
-	htmlMessage = fmt.Sprintf(`
-		<strong>Reservation Notification</strong><br>
-		A reservation has been made for %s from %s to %s.
-`, reservation.Room.RoomName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
+	// 	// send notification to property owner
+	// 	htmlMessage = fmt.Sprintf(`
+	// 		<strong>Reservation Notification</strong><br>
+	// 		A reservation has been made for %s from %s to %s.
+	// `, reservation.Room.RoomName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
 
-	msg = models.MailData{
-		To:      "me@here.com",
-		From:    "me@here.com",
-		Subject: "Reservation Notification",
-		Content: htmlMessage,
-	}
+	// 	msg = models.MailData{
+	// 		To:      "me@here.com",
+	// 		From:    "me@here.com",
+	// 		Subject: "Reservation Notification",
+	// 		Content: htmlMessage,
+	// 	}
 
-	m.App.MailChan <- msg
+	// 	m.App.MailChan <- msg
 
 	m.App.Session.Put(r.Context(), "reservation", reservation)
 
 	http.Redirect(w, r, "/reservation-summary", http.StatusSeeOther)
+}
 
+// ReservationSummary displays the reservation summary page
+func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
+	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
+	if !ok {
+		m.App.Session.Put(r.Context(), "error", "Can't get reservation from session")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	m.App.Session.Remove(r.Context(), "reservation")
+
+	data := make(map[string]any)
+	data["reservation"] = reservation
+
+	sd := reservation.StartDate.Format("2006-01-02")
+	ed := reservation.EndDate.Format("2006-01-02")
+	stringMap := make(map[string]string)
+	stringMap["start_date"] = sd
+	stringMap["end_date"] = ed
+
+	render.Template(w, r, "reservation-summary.page.html", &models.TemplateData{
+		Data:      data,
+		StringMap: stringMap,
+	})
 }
 
 // Generals renders the room page
@@ -265,7 +297,7 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 
 	m.App.Session.Put(r.Context(), "reservation", res)
 
-	render.Template(w, r, "choose-room.page.tmpl", &models.TemplateData{
+	render.Template(w, r, "choose-room.page.html", &models.TemplateData{
 		Data: data,
 	})
 }
