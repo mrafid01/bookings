@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/gob"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/mrafid01/bookings/internals/config"
+	"github.com/mrafid01/bookings/internals/driver"
 	"github.com/mrafid01/bookings/internals/handlers"
+	"github.com/mrafid01/bookings/internals/helpers"
 	"github.com/mrafid01/bookings/internals/models"
 	"github.com/mrafid01/bookings/internals/render"
 )
@@ -23,10 +26,11 @@ var infoLog *log.Logger
 var errorLog *log.Logger
 
 func main() {
-	err := run()
+	db, err := run()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.SQL.Close()
 
 	srv := &http.Server{
 		Addr:    portNumber,
@@ -38,8 +42,19 @@ func main() {
 	log.Fatal(err)
 }
 
-func run() error {
+func run() (*driver.DB, error) {
 	gob.Register(models.Reservation{})
+	gob.Register(models.User{})
+	gob.Register(models.Room{})
+	gob.Register(models.Restriction{})
+	gob.Register(map[string]int{})
+
+	connectionString := flag.String("dburl", "", "Database URL Connection")
+	flag.Parse()
+	if *connectionString == "" {
+		log.Fatal("Missing required flags")
+	}
+
 	// change this to true when in production
 	app.InProduction = false
 
@@ -57,10 +72,18 @@ func run() error {
 
 	app.Session = session
 
+	// connect to database
+	log.Println("Connecting to database...")
+	db, err := driver.ConnectSQL(*connectionString)
+	if err != nil {
+		log.Fatal("Cannot connect to database! Dying...")
+	}
+	log.Println("Connected to database!")
+
 	tc, err := render.CreateTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache")
-		return err
+		return nil, err
 	}
 
 	app.TemplateCache = tc
@@ -69,7 +92,9 @@ func run() error {
 	repo := handlers.NewRepo(&app)
 	handlers.NewHandlers(repo)
 	render.NewRenderer(&app)
-	return nil
+	helpers.NewHelpers(&app)
+
+	return db, nil
 }
 
 // func run() (*driver.DB, error) {

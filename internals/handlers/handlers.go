@@ -10,6 +10,7 @@ import (
 	"github.com/mrafid01/bookings/internals/forms"
 	"github.com/mrafid01/bookings/internals/models"
 	"github.com/mrafid01/bookings/internals/render"
+	"github.com/mrafid01/bookings/internals/repository"
 )
 
 // Repo the repository used by the handlers
@@ -18,7 +19,7 @@ var Repo *Repository
 // Repository is the repository type
 type Repository struct {
 	App *config.AppConfig
-	// DB  repository.DatabaseRepo
+	DB  repository.DatabaseRepo
 }
 
 // NewRepo creates a new repository
@@ -142,12 +143,13 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = m.DB.InsertReservation(reservation)
 	// newReservationID, err := m.DB.InsertReservation(reservation)
-	// if err != nil {
-	// 	m.App.Session.Put(r.Context(), "error", "can't insert reservation into database!")
-	// 	http.Redirect(w, r, "/", http.StatusSeeOther)
-	// 	return
-	// }
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "can't insert reservation into database!")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	// restriction := models.RoomRestriction{
 	// 	StartDate:     startDate,
