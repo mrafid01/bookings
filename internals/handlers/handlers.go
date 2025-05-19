@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/mrafid01/bookings/internals/config"
+	"github.com/mrafid01/bookings/internals/driver"
 	"github.com/mrafid01/bookings/internals/forms"
 	"github.com/mrafid01/bookings/internals/models"
 	"github.com/mrafid01/bookings/internals/render"
 	"github.com/mrafid01/bookings/internals/repository"
+	"github.com/mrafid01/bookings/internals/repository/dbrepo"
 )
 
 // Repo the repository used by the handlers
@@ -23,9 +25,10 @@ type Repository struct {
 }
 
 // NewRepo creates a new repository
-func NewRepo(a *config.AppConfig) *Repository {
+func NewRepo(a *config.AppConfig, db *driver.DB) *Repository {
 	return &Repository{
 		App: a,
+		DB:  dbrepo.NewPostgresRepo(db.SQL, a),
 	}
 }
 
@@ -116,7 +119,12 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		StartDate: startDate,
 		EndDate:   endDate,
 		RoomID:    roomID,
-		Room:      models.Room{RoomName: "General's Quarters"},
+		Room: models.Room{
+			ID:        1,
+			RoomName:  "General's Quarters",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
 		// Room:      room, // add this to fix invalid data error
 	}
 
@@ -143,28 +151,27 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = m.DB.InsertReservation(reservation)
-	// newReservationID, err := m.DB.InsertReservation(reservation)
+	newReservationID, err := m.DB.InsertReservation(reservation)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't insert reservation into database!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	// restriction := models.RoomRestriction{
-	// 	StartDate:     startDate,
-	// 	EndDate:       endDate,
-	// 	RoomID:        roomID,
-	// 	ReservationID: newReservationID,
-	// 	RestrictionID: 1,
-	// }
+	restriction := models.RoomRestriction{
+		StartDate:     startDate,
+		EndDate:       endDate,
+		RoomID:        roomID,
+		ReservationID: newReservationID,
+		RestrictionID: 1,
+	}
 
-	// err = m.DB.InsertRoomRestriction(restriction)
-	// if err != nil {
-	// 	m.App.Session.Put(r.Context(), "error", "can't insert room restriction!")
-	// 	http.Redirect(w, r, "/", http.StatusSeeOther)
-	// 	return
-	// }
+	err = m.DB.InsertRoomRestriction(restriction)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "can't insert room restriction!")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	// 	// send notifications - first to guest
 	// 	htmlMessage := fmt.Sprintf(`
