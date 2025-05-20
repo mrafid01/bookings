@@ -4,13 +4,10 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mrafid01/bookings/internals/config"
 )
 
 func TestRoutes(t *testing.T) {
-	var app config.AppConfig
-
-	mux := routes(&app)
+	mux := routes()
 
 	switch v := mux.(type) {
 	case *chi.Mux:

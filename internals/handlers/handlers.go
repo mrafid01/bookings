@@ -33,6 +33,14 @@ func NewRepo(a *config.AppConfig, db *driver.DB) *Repository {
 	}
 }
 
+// NewTestRepo creates a new repository
+func NewTestRepo(a *config.AppConfig) *Repository {
+	return &Repository{
+		App: a,
+		DB:  dbrepo.NewTestingsRepo(a),
+	}
+}
+
 // NewHandlers sets the repository for the handlers
 func NewHandlers(r *Repository) {
 	Repo = r
@@ -157,7 +165,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		stringMap["start_date"] = sd
 		stringMap["end_date"] = ed
 
-		render.Template(w, r, "make-reservations.page.html", &models.TemplateData{
+		render.Template(w, r, "make-reservation.page.html", &models.TemplateData{
 			Form:      form,
 			Data:      data,
 			StringMap: stringMap, // fixes error after invalid data

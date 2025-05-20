@@ -59,7 +59,8 @@ func Template(w http.ResponseWriter, r *http.Request, tmpl string, td *models.Te
 
 	err := t.Execute(buf, td)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Template execution error:", err)
+		return err
 	}
 	_, err = buf.WriteTo(w)
 	if err != nil {
