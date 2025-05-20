@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/gob"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -32,12 +31,17 @@ func main() {
 	}
 	defer db.SQL.Close()
 
+	defer close(app.MailChan)
+
+	log.Println("Starting mail listener...")
+	listenForMail()
+
+	log.Println("Starting application on port", portNumber)
 	srv := &http.Server{
 		Addr:    portNumber,
 		Handler: routes(),
 	}
 
-	fmt.Println("Starting application on port", portNumber)
 	err = srv.ListenAndServe()
 	log.Fatal(err)
 }
@@ -54,6 +58,9 @@ func run() (*driver.DB, error) {
 	if *connectionString == "" {
 		log.Fatal("Missing required flags")
 	}
+
+	mailChan := make(chan models.MailData)
+	app.MailChan = mailChan
 
 	// change this to true when in production
 	app.InProduction = false
