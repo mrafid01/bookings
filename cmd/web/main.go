@@ -53,7 +53,10 @@ func run() (*driver.DB, error) {
 	gob.Register(models.Restriction{})
 	gob.Register(map[string]int{})
 
+	inProduction := flag.Bool("production", true, "Application is in production")
+	useCache := flag.Bool("cache", true, "Use template cache")
 	connectionString := flag.String("dburl", "", "Database URL Connection")
+
 	flag.Parse()
 	if *connectionString == "" {
 		log.Fatal("Missing required flags")
@@ -63,7 +66,8 @@ func run() (*driver.DB, error) {
 	app.MailChan = mailChan
 
 	// change this to true when in production
-	app.InProduction = false
+	app.InProduction = *inProduction
+	app.UseCache = *useCache
 
 	infoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	app.InfoLog = infoLog
@@ -94,7 +98,6 @@ func run() (*driver.DB, error) {
 	}
 
 	app.TemplateCache = tc
-	app.UseCache = false
 
 	repo := handlers.NewRepo(&app, db)
 	handlers.NewHandlers(repo)
@@ -103,74 +106,3 @@ func run() (*driver.DB, error) {
 
 	return db, nil
 }
-
-// func run() (*driver.DB, error) {
-// 	// what am I going to put in the session
-// 	gob.Register(models.Reservation{})
-// 	gob.Register(models.User{})
-// 	gob.Register(models.Room{})
-// 	gob.Register(models.Restriction{})
-// 	gob.Register(map[string]int{})
-
-// 	// read flags
-// 	inProduction := flag.Bool("production", true, "Application is in production")
-// 	useCache := flag.Bool("cache", true, "Use template cache")
-// 	dbHost := flag.String("dbhost", "localhost", "Database host")
-// 	dbName := flag.String("dbname", "", "Database name")
-// 	dbUser := flag.String("dbuser", "", "Database user")
-// 	dbPass := flag.String("dbpass", "", "Database password")
-// 	dbPort := flag.String("dbport", "5432", "Database port")
-// 	dbSSL := flag.String("dbssl", "disable", "Database ssl settings (disable, prefer, require)")
-
-// 	flag.Parse()
-
-// 	if *dbName == "" || *dbUser == "" {
-// 		fmt.Println("Missing required flags")
-// 		os.Exit(1)
-// 	}
-
-// 	mailChan := make(chan models.MailData)
-// 	app.MailChan = mailChan
-
-// 	// change this to true when in production
-// 	app.InProduction = *inProduction
-// 	app.UseCache = *useCache
-
-// 	infoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-// 	app.InfoLog = infoLog
-
-// 	errorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-// 	app.ErrorLog = errorLog
-
-// 	session = scs.New()
-// 	session.Lifetime = 24 * time.Hour
-// 	session.Cookie.Persist = true
-// 	session.Cookie.SameSite = http.SameSiteLaxMode
-// 	session.Cookie.Secure = app.InProduction
-
-// 	app.Session = session
-
-// 	// connect to database
-// 	log.Println("Connecting to database...")
-// 	connectionString := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", *dbHost, *dbPort, *dbName, *dbUser, *dbPass, *dbSSL)
-// 	db, err := driver.ConnectSQL(connectionString)
-// 	if err != nil {
-// 		log.Fatal("Cannot connect to database! Dying...")
-// 	}
-// 	log.Println("Connected to database!")
-
-// 	tc, err := render.CreateTemplateCache()
-// 	if err != nil {
-// 		log.Fatal("cannot create template cache")
-// 		return nil, err
-// 	}
-
-// 	app.TemplateCache = tc
-
-// 	repo := handlers.NewRepo(&app, db)
-// 	handlers.NewHandlers(repo)
-// 	render.NewRenderer(&app)
-// 	helpers.NewHelpers(&app)
-
-// 	return db, nil
-// }
